@@ -25,5 +25,6 @@ class CaptionsDataLoader():
             raise StopIteration
         else:
             batch_inds = self.batch_indices[self.batch_idx]
-            batch = [self.dataset[i] for i in batch_inds]
+            no_returns = len(self.dataset[0])
+            batch = [[self.dataset[i][k] for i in batch_inds] for k in range(no_returns)]
             return batch

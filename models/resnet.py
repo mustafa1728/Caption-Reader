@@ -16,7 +16,7 @@ class ConvBlock(nn.Module):
         self.bn2 = nn.BatchNorm2d(c_2)
         self.conv3 = nn.Conv2d(in_channels = c_2, out_channels = c_3, kernel_size=(1,1), stride=(1,1), padding=0)
         self.bn3 = nn.BatchNorm2d(c_3)
-        self.conv4 = nn.Conv2d(in_channels = channels, out_channels = c_3, kernel_size=(1,1), stride=stride, padding=0)
+        self.conv4 = nn.Conv2d(in_channels = c_0, out_channels = c_3, kernel_size=(1,1), stride=stride, padding=0)
         self.bn4 = nn.BatchNorm2d(c_3)
         
     def forward(self,x):

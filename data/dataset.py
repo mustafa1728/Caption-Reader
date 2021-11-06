@@ -7,8 +7,8 @@ def generate_vocabulary(ann_file, vocab_path=None):
     vocab = ["<start>", "<end>", "<unk>"]
     if vocab_path is not None and os.path.exists(vocab_path):
         df = pd.read_csv(vocab_path)
-        return df[:, 0].values
-    df = pd.read_csv(ann_file, header=None)
+        return df.iloc[:, 0].values
+    df = pd.read_csv(ann_file, header=None, delimiter="\t")
     for caption in df.iloc[:, 1].values:
         vocab += caption.split(" ")
     vocab = list(set(vocab))
@@ -31,8 +31,8 @@ class CaptionDataset():
     
     def parse_annotations(self):
         self.data_idx = []
-        df = pd.read_csv(self.ann_file, header=None)
-        df, self.vocab = generate_vocabulary(self.ann_file, self.vocab_path)
+        df = pd.read_csv(self.ann_file, header=None, delimiter="\t")
+        self.vocab = generate_vocabulary(self.ann_file, self.vocab_path)
         self.data_idx = [ 
             {
                 "image_name": df.iloc[:, 0].values[i],
@@ -59,7 +59,7 @@ class CaptionDataset():
             image = self.img_transforms(image)
         
         if self.cap_transforms is not None and callable(self.cap_transforms):
-            image = self.cap_transforms(image)
+            caption = self.cap_transforms(caption)
 
         return image, caption
 
