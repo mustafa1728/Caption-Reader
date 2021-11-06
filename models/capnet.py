@@ -8,7 +8,7 @@ class CapNet(nn.Module):
         Main Image Captioning model.
         Encoder-Decoder style architecture
     '''
-    def __init__(self, embedding_dim=128, lstm_size=256):
+    def __init__(self, embedding_dim=128, lstm_size=256, vocab_size=100):
         super().__init__()
         
         self.encoder = ResNet50(
@@ -19,7 +19,7 @@ class CapNet(nn.Module):
         self.decoder = LSTM(
             embedding_dim,
             lstm_hidden_size=lstm_size,
-            vocab_size=100,
+            vocab_size=vocab_size,
             use_gpu=True,
             use_attention=True,
         )
