@@ -149,7 +149,7 @@ class BaseResNet(nn.Module):
         
 
 class ResNet50(BaseResNet):
-    def __init__(self, in_channels=3, out_dim=5):
+    def __init__(self, in_channels=3, out_dim=128):
         super().__init__(
             in_channels=in_channels,
             out_dim=out_dim,
@@ -157,7 +157,7 @@ class ResNet50(BaseResNet):
         )
 
 class ResNet101(BaseResNet):
-    def __init__(self, in_channels=3, out_dim=5):
+    def __init__(self, in_channels=3, out_dim=128):
         super().__init__(
             in_channels=in_channels,
             out_dim=out_dim,

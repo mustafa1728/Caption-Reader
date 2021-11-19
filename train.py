@@ -6,26 +6,41 @@ from data.transforms import get_img_transforms, get_caption_transforms
 import os
 import torch
 from tqdm import tqdm
+import argparse
 import logging
-logging.basicConfig(filename='train.log', filemode='a', format='%(levelname)s - %(message)s', level=logging.INFO)
 
 USE_GPU = torch.cuda.is_available()
 
+def parse_args():
+    parser = argparse.ArgumentParser(description='Caption Reader Training')
+    parser.add_argument('--root', type=str, help='path to dataset images root directory', default="../", required=False)
+    parser.add_argument('--ann', type=str, help='path to annotation file', default="../Train_text.tsv", required=False)
+    parser.add_argument('--vocab_path', type=str, help='path to save vocabulary', default="../vocabulary.csv", required=False)
+    parser.add_argument('--bs', type=int, help='batch size', default=32, required=False)
+    parser.add_argument('--epoch', type=int, help='number of epochs to train', default=10, required=False)
+    parser.add_argument('--ckpt_path', type=str, help='path to save checkpoints', default="./checkpoints", required=False)
+    parser.add_argument('--seed', type=int, help='seed', default=0, required=False)
+    args = parser.parse_args()
+
 def main():
-    vocab_path = "../vocabulary.csv"
-    vocab = generate_vocabulary("../Train_text.tsv", vocab_path)
+
+    args = parse_args()
+
+    logging.basicConfig(filename=os.path.join(args.ckpt_path, 'train.log'), filemode='a', format='%(levelname)s | %(message)s', level=logging.INFO)
+    vocab_path = args.vocab_path
+    vocab = generate_vocabulary(args.ann, vocab_path)
     train_dataset = CaptionDataset(
-        img_prefix="../",
-        ann_file="../Train_text.tsv",
+        img_prefix=args.root,
+        ann_file=args.ann,
         img_transforms=get_img_transforms(output_size=(256, 256)),
         cap_transforms=get_caption_transforms(vocab_file_path=vocab_path),
         vocab_path=vocab_path,
     )
     train_dataloader = CaptionsDataLoader(
         dataset=train_dataset,
-        batch_size=16,
+        batch_size=args.bs,
         shuffle=True,
-        seed=0,
+        seed=args.seed,
     )
     model = CapNet(
         embedding_dim=128,
@@ -37,11 +52,10 @@ def main():
         model = model.cuda()
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
-    no_epochs = 10
 
-    os.makedirs("./checkpoints", exist_ok=True)
+    os.makedirs(args.ckpt_path, exist_ok=True)
     logging.info("Start new training")
-    for epoch in range(1, no_epochs+1):
+    for epoch in range(1, args.epoch+1):
         for batch in tqdm(train_dataloader):
             images, captions = batch
             padded_caps = torch.nn.utils.rnn.pad_sequence(captions, batch_first=True)
