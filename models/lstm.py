@@ -17,7 +17,6 @@ class LSTM(nn.Module):
 
         
     def forward(self, image_features, image_captions):
-        # image_features = torch.Tensor.repeat_interleave(image_features, repeats=5 , dim=0)
         image_features = image_features.unsqueeze(1)
         
         if type(image_captions) == torch.nn.utils.rnn.PackedSequence:

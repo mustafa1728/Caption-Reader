@@ -21,12 +21,12 @@ def parse_args():
     parser.add_argument('--ckpt_path', type=str, help='path to save checkpoints', default="./checkpoints", required=False)
     parser.add_argument('--seed', type=int, help='seed', default=0, required=False)
     args = parser.parse_args()
+    return args
 
 def main():
 
     args = parse_args()
 
-    logging.basicConfig(filename=os.path.join(args.ckpt_path, 'train.log'), filemode='a', format='%(levelname)s | %(message)s', level=logging.INFO)
     vocab_path = args.vocab_path
     vocab = generate_vocabulary(args.ann, vocab_path)
     train_dataset = CaptionDataset(
@@ -54,6 +54,7 @@ def main():
     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 
     os.makedirs(args.ckpt_path, exist_ok=True)
+    logging.basicConfig(filename=os.path.join(args.ckpt_path, 'train.log'), filemode='a', format='%(levelname)s | %(message)s', level=logging.INFO)
     logging.info("Start new training")
     for epoch in range(1, args.epoch+1):
         for batch in tqdm(train_dataloader):
@@ -72,10 +73,10 @@ def main():
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-        to_print_str = "Epoch {}/{} | Loss: {}".format(epoch, no_epochs, loss.item())
+        to_print_str = "Epoch {}/{} | Loss: {}".format(epoch, args.epoch, loss.item())
         print(to_print_str)
         logging.info(to_print_str)
-        torch.save(model.state_dict(), "./checkpoints/model_{}.pth".format(epoch))
+        torch.save(model.state_dict(), os.path.join(args.ckpt_path, "model_{}.pth".format(epoch)))
 
 if __name__ == "__main__":
     main()
