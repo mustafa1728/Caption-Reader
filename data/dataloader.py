@@ -16,7 +16,7 @@ class CaptionsDataLoader():
         return self
 
     def __len__(self):
-        return sum([len(b) for b in self.batch_indices])
+        return len(self.batch_indices)
 
     def __next__(self):
         self.batch_idx+=1

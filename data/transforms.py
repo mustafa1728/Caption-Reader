@@ -20,7 +20,7 @@ def get_caption_transforms(vocab_file_path):
         return ["<start>"] + word_list + ["<end>"]
 
     def get_indices(word_list):
-        return [word_to_idx[w] if w in vocab else word_to_idx["<unk>"] for w in word_list]
+        return torch.tensor([word_to_idx[w] if w in vocab else word_to_idx["<unk>"] for w in word_list])
 
     def composed_transform(caption):
         return get_indices(add_start_end(tokenize(caption)))

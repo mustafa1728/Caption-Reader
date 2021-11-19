@@ -3,7 +3,7 @@ import torch.nn as nn
 
 
 class AttentionBlock(nn.Module):
-    def __init__(self, embed_dim, units, vocab_size):
+    def __init__(self, embed_dim, units):
         super(AttentionBlock, self).__init__()
         self.W1 = nn.Linear(in_features = embed_dim, out_features = units)
         self.W2 = nn.Linear(in_features=units, out_features=units)
@@ -14,9 +14,11 @@ class AttentionBlock(nn.Module):
     def forward(self, img_features, hidden):
         
         hidden = hidden.unsqueeze(dim=1)
-        hidden = hidden.double()
+        # hidden = hidden.double()
         #print("feature and hidden shape",img_features.shape, hidden.shape)
-        combined_score = self.tanh(self.W1(img_features) + self.W2(hidden))
+        pre_score1 = self.W1(img_features)
+        pre_score2 = self.W2(hidden)
+        combined_score = self.tanh(pre_score1 + pre_score2)
         
         attention_weights = self.softmax(self.V(combined_score))
         context_vector = attention_weights * img_features
@@ -38,7 +40,7 @@ class LSTM(nn.Module):
         self.linear = nn.Linear(lstm_hidden_size, self.vocab_size)        
         self.embed = nn.Embedding(self.vocab_size, embed_dim)
         if self.use_attention:
-            self.attention = AttentionBlock(embed_dim, lstm_hidden_size, self.vocab_size)
+            self.attention = AttentionBlock(embed_dim, lstm_hidden_size)
 
         
     def forward(self, image_features, image_captions):
@@ -52,9 +54,12 @@ class LSTM(nn.Module):
         if self.use_attention:
             image_features, _ = self.attention(image_features, hidden)
         
-        embedded_captions = self.embed(image_captions)
-        input_lstm = torch.cat((image_features, embedded_captions[:,:-1]), dim = 1)
-        lstm_outputs, _ = self.lstm(input_lstm)        
-        lstm_outputs = self.linear(lstm_outputs) 
+        if type(image_captions) == torch.nn.utils.rnn.PackedSequence:
+            embedded_captions = torch.nn.utils.rnn.PackedSequence(self.embed(image_captions.data), image_captions.batch_sizes)
+        else:
+            embedded_captions = self.embed(image_captions
+            
+        lstm_outputs, _ = self.lstm(embedded_captions)        
+        lstm_outputs = self.linear(lstm_outputs.data) 
         
         return lstm_outputs
