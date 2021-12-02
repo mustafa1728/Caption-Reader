@@ -2,29 +2,36 @@ import torch
 import torch.nn as nn
 
 class LSTM(nn.Module):
-    def __init__(self, embed_dim, lstm_hidden_size, lstm_layers=1, vocab_size=100, use_gpu=True, use_attention=True):
+    def __init__(self, embed_dim, hidden_size, num_layers=1, vocab_size=100, use_gpu=True, use_attention=True):
         super(LSTM, self).__init__()
-        self.lstm_hidden_size = lstm_hidden_size
+        self.hidden_size = hidden_size
         self.vocab_size = vocab_size
         self.use_gpu = use_gpu
-        self.use_attention = use_attention
         
-        self.lstm = nn.LSTM(input_size = embed_dim, hidden_size = lstm_hidden_size,
-                            num_layers = lstm_layers, batch_first = True)
+        self.lstm = nn.LSTM(input_size = embed_dim, hidden_size = hidden_size,
+                            num_layers = num_layers, batch_first = True)
         
-        self.linear = nn.Linear(lstm_hidden_size, self.vocab_size)        
+        self.fc = nn.fc(hidden_size, self.vocab_size)        
         self.embed = nn.Embedding(self.vocab_size, embed_dim)
 
         
-    def forward(self, image_features, image_captions):
+    def forward(self, image_features, image_captions, lengths):
         image_features = image_features.unsqueeze(1)
         
-        if type(image_captions) == torch.nn.utils.rnn.PackedSequence:
-            embedded_captions = torch.nn.utils.rnn.PackedSequence(self.embed(image_captions.data), image_captions.batch_sizes)
-        else:
-            embedded_captions = self.embed(image_captions)
+        embedded_captions = self.embed(image_captions)
 
-        lstm_outputs, _ = self.lstm(embedded_captions)        
-        lstm_outputs = self.linear(lstm_outputs.data) 
+        embeddings = torch.cat((image_features, embedded_captions), 1)
+
+        packed_seq = torch.nn.utils.rnn.pack_padded_sequence(embeddings, lengths, batch_first=True, enforce_sorted= False)
+
+        lstm_outputs, _ = self.lstm(packed_seq)        
+        decoder_outputs = self.fc(lstm_outputs.data) 
         
-        return lstm_outputs
+        return decoder_outputs
+
+    def forward_test(self, features, hidden=None):
+        if(hidden is not None):
+            features = self.embed(features).unsqueeze(1)
+        output, hidden = self.lstm(features, hidden)
+        output = self.fc(output.squeeze(1))
+        return output, hidden

@@ -1,8 +1,10 @@
 from models.capnet import CapNet
+from models.capnet_comp import CapNetComp
 from data.dataset import CaptionDataset, generate_vocabulary
 from data.dataloader import CaptionsDataLoader
 from data.transforms import get_img_transforms, get_caption_transforms
 
+import numpy as np
 import os
 import torch
 from tqdm import tqdm
@@ -20,6 +22,7 @@ def parse_args():
     parser.add_argument('--epoch', type=int, help='number of epochs to train', default=10, required=False)
     parser.add_argument('--ckpt_path', type=str, help='path to save checkpoints', default="./checkpoints", required=False)
     parser.add_argument('--seed', type=int, help='seed', default=0, required=False)
+    parser.add_argument('--comp', dest='comp', action='store_true')
     args = parser.parse_args()
     return args
 
@@ -42,12 +45,21 @@ def main():
         shuffle=True,
         seed=args.seed,
     )
-    model = CapNet(
-        embedding_dim=128,
-        lstm_size=256,
-        vocab_size=len(vocab),
-        use_gpu=USE_GPU,
-    )
+    if args.comp:
+        model = CapNetComp(
+            embedding_dim=128,
+            lstm_size=256,
+            vocab_size=len(vocab),
+            use_gpu=USE_GPU,
+        )
+    else:
+        model = CapNet(
+            embedding_dim=128,
+            lstm_size=256,
+            vocab_size=len(vocab),
+            use_gpu=USE_GPU,
+        )
+        
     if USE_GPU:
         model = model.cuda()
     criterion = torch.nn.CrossEntropyLoss()
@@ -56,23 +68,38 @@ def main():
     os.makedirs(args.ckpt_path, exist_ok=True)
     logging.basicConfig(filename=os.path.join(args.ckpt_path, 'train.log'), filemode='a', format='%(levelname)s | %(message)s', level=logging.INFO)
     logging.info("Start new training")
+    no_batches = len(train_dataloader)
     for epoch in range(1, args.epoch+1):
-        for batch in tqdm(train_dataloader):
-            images, captions = batch
-            padded_caps = torch.nn.utils.rnn.pad_sequence(captions, batch_first=True)
-            packed_caps = torch.nn.utils.rnn.pack_padded_sequence(padded_caps, batch_first=True, lengths=[cap.size(0) for cap in captions], enforce_sorted=False)
+        # batch_id = 0
+        # for batch in tqdm(train_dataloader):
+        for batch_id, batch in enumerate(train_dataloader):
+            images, captions, _ = batch
             batch_images = torch.stack(images)
 
+            lengths = [cap.size(0) for cap in captions]
+            train = torch.zeros(len(captions), max(lengths)-1)
+            for i, cap in enumerate(captions):
+                train[i][:lengths[i]-1]=np.delete(cap.data, lengths[i]-1)
+            train = train.to(dtype = torch.long)
             if USE_GPU:
                 batch_images = batch_images.cuda()
-                packed_caps = packed_caps.cuda()
-            pred_captions = model(batch_images, packed_caps)
+                captions = [cap.cuda() for cap in captions]
+                train = train.cuda()
 
-            loss = criterion(pred_captions, packed_caps.data)
+            pred_captions = model(batch_images, train, lengths)
+
+
+            packed_caps = torch.nn.utils.rnn.pack_padded_sequence(train, lengths, batch_first=True, enforce_sorted =False)
+            top_k = packed_caps.data.size(0)
+            loss = criterion(pred_captions[:top_k, :], packed_caps.data)
 
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+            
+            if (batch_id+1)%100 == 0:
+                to_print_str = "Batch {}/{} | Epoch {}/{} | Loss: {}".format(batch_id, no_batches, epoch, args.epoch, loss.item())
+                print(to_print_str)
         to_print_str = "Epoch {}/{} | Loss: {}".format(epoch, args.epoch, loss.item())
         print(to_print_str)
         logging.info(to_print_str)

@@ -10,7 +10,6 @@ def get_caption_transforms(vocab_file_path):
     df = pd.read_csv(vocab_file_path)
     vocab = df.iloc[:, 0].values
     word_to_idx = {vocab[i]: i for i in range(len(vocab))}
-    # idx_to_word = {vocab[i]: i for i in range(len(vocab))}
 
     def tokenize(caption):
         word_list =  caption.split(" ")
@@ -52,3 +51,20 @@ def get_img_transforms(output_size):
         return out_img
 
     return pad_resize
+
+
+def get_sentence_decoder(vocab_file_path):
+    df = pd.read_csv(vocab_file_path)
+    vocab = df.iloc[:, 0].values
+    idx_to_word = {i:vocab[i] for i in range(len(vocab))}
+
+    def decoder(sentence_indices):
+        words = [idx_to_word[i] for i in sentence_indices]
+        sentence = ""
+        for word in words:
+            if word != "<start>" and word != "<end>" and word != "<unk>":
+                sentence += word
+                sentence += " "
+        return sentence[:-1]
+
+    return decoder

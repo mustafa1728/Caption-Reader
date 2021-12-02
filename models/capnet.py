@@ -24,13 +24,13 @@ class CapNet(nn.Module):
             use_attention=True,
         )
 
-    def forward(self, imgs, caps):
+    def forward(self, imgs, caps, lengths):
 
         embedding = self.encoder(imgs)
 
-        features = self.decoder(embedding, caps)
+        pred_caps = self.decoder(embedding, caps, lengths)
 
-        return features
+        return pred_caps
 
 
 
