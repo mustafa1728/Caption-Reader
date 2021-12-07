@@ -22,5 +22,21 @@ The LSTM module provided by pytorch is directly used for the decoder. The embedd
 </p>
 
 
+### Instructions to run
+
+To train the model on a given dataset, run
+
+```
+python3 train.py --root <root_path> --ann <annotation_path> --epoch <no_epochs>
+```
+
+To use the Imagenet pretrained resnet50 model for the encoder, simply add a `--comp` argument to the command above.
+
+To run inference and dump predictions on a test dataset, run
 
 
+```
+python3 predict.py --root ../test_data --ckpt_path 24_ll/model_10.pth --save test_out.tsv --mode dump
+```
+
+Further details regarding other arguments and options can be seen by running `python3 predict.py --help` and `python3 train.py --help`.
